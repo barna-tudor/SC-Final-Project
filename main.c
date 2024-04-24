@@ -5,6 +5,8 @@
 #include <ctype.h> // for isprint()
 
 
+
+
 void printHelp() {
     printf("Usage:\n");
     printf("    SC_Final_Project.exe <-i FILE1> [-o FILE2] <{-e | -d}> <{-D | -B | -R}> <-k FILE3>\n");
@@ -123,9 +125,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "File '%s' not found!", iValue);
     }
 
-    fclose(input);
+
     output = fopen(oValue, "wb");
     // do stuff here
+    fclose(input);
     fclose(output);
 
     return 0;

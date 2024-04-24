@@ -3,4 +3,11 @@ project(SC_Final_Project C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(SC_Final_Project main.c)
+add_executable(SC_Final_Project main.c
+        DES.c
+        DES.h
+        RSA.c
+        RSA.h
+        BlowFish.c
+        BlowFish.h
+)
