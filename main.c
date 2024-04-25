@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <ctype.h> // for isprint()
 
-
+#include "DES.h"
 
 
 void printHelp() {
