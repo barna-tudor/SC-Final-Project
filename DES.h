@@ -8,7 +8,9 @@
 #ifndef MASK_32
 #define MASK_32 0X00000000FFFFFFFF
 #endif
+#ifndef MASK_28
 #define MASK_28 0x000000000FFFFFFF
+#endif
 #define SHIFT_28(x, n) ( ((x << n) | (x >> (28-n)) ) & MASK_28 )
 // 00000000 00000000 100001 00 and 40 0s, converted to hex
 #define S_BOX_ROW 0x0000840000000000

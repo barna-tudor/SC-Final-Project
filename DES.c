@@ -7,7 +7,7 @@
 #include "DES.h"
 
 //  INITIAL PERMUTATION
-const uint8_t DES_INITIAL_PERM_TABLE[64] = {
+static const uint8_t DES_INITIAL_PERM_TABLE[64] = {
         58, 50, 42, 34, 26, 18, 10, 2,
         60, 52, 44, 36, 28, 20, 12, 4,
         62, 54, 46, 38, 30, 22, 14, 6,
@@ -18,7 +18,7 @@ const uint8_t DES_INITIAL_PERM_TABLE[64] = {
         63, 55, 47, 39, 31, 23, 15, 7
 };
 //  INVERSE INITIAL PERMUTATION
-const uint8_t DES_INVERSE_PERM_TABLE[64] = {
+static const uint8_t DES_INVERSE_PERM_TABLE[64] = {
         40, 8, 48, 16, 56, 24, 64, 32,
         39, 7, 47, 15, 55, 23, 63, 31,
         38, 6, 46, 14, 54, 22, 62, 30,
@@ -29,7 +29,7 @@ const uint8_t DES_INVERSE_PERM_TABLE[64] = {
         33, 1, 41, 9, 49, 17, 57, 25
 };
 //  EXPANSION
-const uint8_t DES_EXPANSION_TABLE[48] = {
+static const uint8_t DES_EXPANSION_TABLE[48] = {
         32, 1, 2, 3, 4, 5,
         4, 5, 6, 7, 8, 9,
         8, 9, 10, 11, 12, 13,
@@ -40,7 +40,7 @@ const uint8_t DES_EXPANSION_TABLE[48] = {
         28, 29, 30, 31, 32, 1
 };
 //  S-BOXES
-const uint8_t DES_S_BOXES[8][64] = {
+static const uint8_t DES_S_BOXES[8][64] = {
         {
                 14, 4,  13, 1,  2,  15, 11, 8,  3,  10, 6,  12, 5,  9,  0,  7,
                 0,  15, 7,  4,  14, 2,  13, 1,  10, 6, 12, 11, 9,  5,  3,  8,
@@ -91,7 +91,7 @@ const uint8_t DES_S_BOXES[8][64] = {
         }
 };
 //  P-PERMUTATION TABLE
-const uint8_t DES_P_TABLE[32] = {
+static const uint8_t DES_P_TABLE[32] = {
         16, 7, 20, 21,
         29, 12, 28, 17,
         1, 15, 23, 26,
@@ -102,7 +102,7 @@ const uint8_t DES_P_TABLE[32] = {
         22, 11, 4, 25
 };
 //  PERMUTED CHOICE 1
-const uint8_t DES_PERM_CHOICE_1_TABLE[56] = {
+static const uint8_t DES_PERM_CHOICE_1_TABLE[56] = {
         57, 49, 41, 33, 25, 17, 9,
         1, 58, 50, 42, 34, 26, 18,
         10, 2, 59, 51, 43, 35, 27,
@@ -114,7 +114,7 @@ const uint8_t DES_PERM_CHOICE_1_TABLE[56] = {
 };
 
 //  PERMUTED CHOICE 2
-const uint8_t DES_PERM_CHOICE_2_TABLE[48] = {
+static const uint8_t DES_PERM_CHOICE_2_TABLE[48] = {
         14, 17, 11, 24, 1, 5,
         3, 28, 15, 6, 21, 10,
         23, 19, 12, 4, 26, 8,
@@ -126,13 +126,13 @@ const uint8_t DES_PERM_CHOICE_2_TABLE[48] = {
 };
 
 // SHIFT SIZES BY ROUND
-const unsigned int DES_SHIFTS[16] = {
+static const unsigned int DES_SHIFTS[16] = {
         1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1
 };
 /* Globals */
 uint64_t DES_key;
 uint64_t DES_permuted_choice_1 = 0, DES_permuted_choice_2 = 0;
-uint64_t roundKeys[16] = {0};
+uint64_t DES_round_keys[16] = {0};
 
 
 /* functions */
@@ -192,10 +192,10 @@ uint64_t DES_block(uint64_t block, int encrypt) {
         // encrypt/decrypt?
         if (encrypt == 1) {
             // XOR with current Round's key
-            sBoxInput = sBoxInput ^ roundKeys[i];
+            sBoxInput = sBoxInput ^ DES_round_keys[i];
         } else {
             // Decryption is the same, just using reverse key order;
-            sBoxInput = sBoxInput ^ roundKeys[15 - i];
+            sBoxInput = sBoxInput ^ DES_round_keys[15 - i];
         }
         // S-Box Processing
         // 8 * 6 -> 8 * 4
@@ -286,8 +286,8 @@ void DES_set_round_keys() {
         D = SHIFT_28(D, DES_SHIFTS[i]);
         DES_permuted_choice_2 = (((uint64_t) C) << 28) | (uint64_t) D;
         for (j = 0; j < 48; ++j) {
-            roundKeys[i] <<= 1;
-            roundKeys[i] = roundKeys[i] | (
+            DES_round_keys[i] <<= 1;
+            DES_round_keys[i] = DES_round_keys[i] | (
                     (DES_permuted_choice_2 >> (56 - DES_PERM_CHOICE_2_TABLE[j])) & 1);
 
         }
