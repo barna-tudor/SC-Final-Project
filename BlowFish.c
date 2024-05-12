@@ -213,8 +213,8 @@ static uint32_t BLF_round_function(uint32_t L) {
 
 uint64_t BLF_block(uint64_t block, int encrypt) {
     uint32_t L = 0, R = 0, temp = 0;
-    L = (uint32_t) block >> 32;
-    R = (uint32_t) block & MASK_32;
+    L = (uint32_t)( block >> 33);
+    R = (uint32_t)( block & MASK_32);
     if (encrypt == 1) {
         for (int i = 0; i < 16; ++i) {
             L ^= BLF_p_array[i];
@@ -230,7 +230,7 @@ uint64_t BLF_block(uint64_t block, int encrypt) {
         L ^= BLF_p_array[17];
         return (uint64_t) ((uint64_t) L << 32 | R);
     }
-    for (int i = 18; i > 1; --i) {
+    for (int i = 17; i > 1; --i) {
         L ^= BLF_p_array[i];
         R ^= BLF_round_function(L);
         temp = L;
@@ -269,6 +269,8 @@ static void BLF_set_sub_keys(uint32_t key_size) {
         }
         BLF_p_array[i] = BLF_INIT_P_ARRAY[i] ^ temp;
     }
+
+
 
     uint64_t temp2 = 0;
     for (i = 0; i < 18; i += 2) {
