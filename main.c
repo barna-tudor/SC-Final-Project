@@ -34,6 +34,10 @@ void printHelp() {
     printf("              The right-most argument given will take priority;\n");
     printf("    [-h]\n");
     printf("        Display this message;\n");
+    printf(" Note: Due to the nature of block cyphers, I had to append 0s to final blocks\n");
+    printf("       that are smaller than 64 bits. As a result, when using DES/Blowfish to \n");
+    printf("       en/de-crypt there will be trailing NULLs\n");
+    printf("       (I don't know how to circumvent this)\n");
 }
 
 int main(int argc, char **argv) {
@@ -123,13 +127,26 @@ int main(int argc, char **argv) {
     input = fopen(iValue, "rb");
     if (input == NULL) {
         fprintf(stderr, "File '%s' not found!", iValue);
+        abort();
     }
-
-
-    output = fopen(oValue, "wb");
-    // do stuff here
     fclose(input);
-    fclose(output);
+    key = fopen(kValue, "rb");
+    if (key == NULL) {
+        fprintf(stderr, "File '%s' not found!", iValue);
+        abort();
+    }
+    fclose(key);
 
+    if (DESFlag) {
+        DES(iValue, oValue, kValue, eFlag);
+        return 0;
+    }
+    if (BLFSHFlag) {
+
+        return 0;
+    }
+    if (RSAFlag) {
+        return 0;
+    }
     return 0;
 }

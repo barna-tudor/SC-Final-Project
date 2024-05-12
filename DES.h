@@ -18,7 +18,7 @@
 #define S_BOX_COL 0x0000780000000000
 
 /* FUNCTIONS */
-void DES(char *input, char *output, char *key_file_name);
+void DES(char *input, char *output, char *key_file_name, int encrypt);
 
 uint64_t DES_block(uint64_t block, int encrypt);
 

@@ -7,6 +7,7 @@
 #include "DES.h"
 
 //  INITIAL PERMUTATION
+//  INITIAL PERMUTATION
 static const uint8_t DES_INITIAL_PERM_TABLE[64] = {
         58, 50, 42, 34, 26, 18, 10, 2,
         60, 52, 44, 36, 28, 20, 12, 4,
@@ -144,12 +145,42 @@ void DES_set_round_keys();
 /* true = encrypt, false = decrypt*/
 uint64_t DES_block(uint64_t block, int encrypt);
 
-void DES(char *input, char *output, char *key_file_name);
+void DES(char *input, char *output, char *key_file_name, int encrypt);
 
+/* ------------------------------------------------------- */
 
-void DES(char *input, char *output, char *key_file_name) {
-    DES_read_key_from_file(key_file_name);
+void DES(char *input, char *output, char *key_file_name, int encrypt) {
+    // pre-work
+    DES_key = DES_read_key_from_file(key_file_name);
     DES_set_round_keys();
+
+    FILE *in = fopen(input, "rb");
+    FILE *out = fopen(output, "wb");
+
+    uint64_t combined_block = 0;
+    uint64_t result_block = 0;
+    uint8_t block[8] = {0};
+
+    int i;
+    size_t sizeRead = 0;
+    while ((sizeRead = fread(block, 1, sizeof(block), in)) > 0) {
+        // read
+        for (i = 0; i < sizeRead; ++i) {
+            combined_block <<= 8;
+            combined_block |= block[i] & 0xFF;
+        }
+
+        while (i < 8) {
+            combined_block <<= 8;
+            i++;
+        }
+        // process
+        result_block = DES_block(combined_block, encrypt);
+        // write
+        for (i = 0; i < 8; ++i) {
+            fprintf(out, "%c", (char) ((result_block >> (7 - i) * 8)) & 0xFF);
+        }
+    }
 }
 
 uint64_t DES_block(uint64_t block, int encrypt) {
@@ -289,7 +320,6 @@ void DES_set_round_keys() {
             DES_round_keys[i] <<= 1;
             DES_round_keys[i] = DES_round_keys[i] | (
                     (DES_permuted_choice_2 >> (56 - DES_PERM_CHOICE_2_TABLE[j])) & 1);
-
         }
     }
 }
