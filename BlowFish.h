@@ -10,4 +10,6 @@
 #endif
 
 
+void BLOWFISH(char *input, char *output, char *key_file_name, int encrypt);
+
 #endif //SC_FINAL_PROJECT_BLOWFISH_H

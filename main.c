@@ -5,7 +5,7 @@
 #include <ctype.h> // for isprint()
 
 #include "DES.h"
-
+#include "BlowFish.h"
 
 void printHelp() {
     printf("Usage:\n");
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
     fclose(input);
     key = fopen(kValue, "rb");
     if (key == NULL) {
-        fprintf(stderr, "File '%s' not found!", iValue);
+        fprintf(stderr, "File '%s' not found!", kValue);
         abort();
     }
     fclose(key);
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
         return 0;
     }
     if (BLFSHFlag) {
-
+        BLOWFISH(iValue, oValue, kValue, eFlag);
         return 0;
     }
     if (RSAFlag) {

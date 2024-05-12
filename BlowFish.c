@@ -3,6 +3,7 @@
 //
 
 #include <stdio.h>
+#include <process.h>
 // https://link.springer.com/chapter/10.1007/3-540-58108-1_24
 #include "BlowFish.h"
 
@@ -194,12 +195,13 @@ const uint32_t BLF_INIT_P_ARRAY[18] = {
 /* Globals */
 uint32_t BLF_p_array[18] = {0};
 uint32_t BLF_s_boxes[4][256] = {0};
-uint8_t BLF_key[56];
+uint8_t BLF_key[56] = {0};
+uint8_t BLF_key_size = 0;
 
 
 //F(L) = ((S[1,a] + S[2,b] mod 2^32) XOR S[3,c]) + S[4,d] mod 2^32
 // where a,b,c,d are 8bit divisions of L
-static uint32_t BLF_F(uint32_t L) {
+static uint32_t BLF_round_function(uint32_t L) {
     uint8_t a, b, c, d;
     a = (uint8_t) (L >> 24);
     b = (uint8_t) (L >> 16 & 0xff);
@@ -211,10 +213,12 @@ static uint32_t BLF_F(uint32_t L) {
 
 uint64_t BLF_block(uint64_t block, int encrypt) {
     uint32_t L = 0, R = 0, temp = 0;
+    L = (uint32_t) block >> 32;
+    R = (uint32_t) block & MASK_32;
     if (encrypt == 1) {
         for (int i = 0; i < 16; ++i) {
             L ^= BLF_p_array[i];
-            R ^= BLF_F(L);
+            R ^= BLF_round_function(L);
             temp = L;
             L = R;
             R = temp;
@@ -228,7 +232,7 @@ uint64_t BLF_block(uint64_t block, int encrypt) {
     }
     for (int i = 18; i > 1; --i) {
         L ^= BLF_p_array[i];
-        R ^= BLF_F(L);
+        R ^= BLF_round_function(L);
         temp = L;
         L = R;
         R = temp;
@@ -261,6 +265,7 @@ static void BLF_set_sub_keys(uint32_t key_size) {
             k++;
             if (k >= key_size)
                 k = 0;
+            k = k % BLF_key_size;
         }
         BLF_p_array[i] = BLF_INIT_P_ARRAY[i] ^ temp;
     }
@@ -271,11 +276,67 @@ static void BLF_set_sub_keys(uint32_t key_size) {
         BLF_p_array[i] = (uint32_t) (temp2 >> 32);
         BLF_p_array[i + 1] = (uint32_t) (temp2 & MASK_32);
     }
+
     for (i = 0; i < 4; ++i) {
         for (j = 0; j < 256; j += 2) {
             temp2 = BLF_block(temp2, 1);
             BLF_s_boxes[i][j] = (uint32_t) (temp2 >> 32);
             BLF_s_boxes[i][j + 1] = (uint32_t) (temp2 & MASK_32);
+        }
+    }
+}
+
+void BLF_read_key_from_file(char *key_file_name) {
+    FILE *input = fopen(key_file_name, "rb");
+
+    fseek(input, 0, SEEK_END);
+    size_t FILE_SIZE = ftell(input);
+    fseek(input, 0, SEEK_SET);
+
+    // 32–448 bits
+    if (FILE_SIZE < 32 / 8 || FILE_SIZE > 448 / 8) {
+        fprintf(stderr, "ERROR: BLOWFISH key size must be between 32 and 448 bits");
+        fclose(input);
+        abort();
+    }
+
+    size_t sizeRead = 0;
+    sizeRead = fread(BLF_key, 1, sizeof(BLF_key), input);
+    BLF_key_size = sizeRead;
+
+}
+
+void BLOWFISH(char *input, char *output, char *key_file_name, int encrypt) {
+    // pre-work
+    BLF_read_key_from_file(key_file_name);
+    BLF_set_sub_keys(BLF_key_size);
+
+    FILE *in = fopen(input, "rb");
+    FILE *out = fopen(output, "wb");
+
+    uint64_t combined_block = 0;
+    uint64_t result_block = 0;
+    uint8_t block[8] = {0};
+
+    int i;
+    size_t sizeRead = 0;
+    while ((sizeRead = fread(block, 1, sizeof(block), in)) > 0) {
+        // read
+        for (i = 0; i < sizeRead; ++i) {
+            combined_block <<= 8;
+            combined_block |= block[i] & 0xFF;
+        }
+
+        while (i < 8) {
+            combined_block <<= 8;
+            i++;
+        }
+        // process
+        result_block = BLF_block(combined_block, encrypt);
+        printf("%llX", result_block);
+        // write
+        for (i = 0; i < 8; ++i) {
+            fprintf(out, "%c", (char) ((result_block >> (7 - i) * 8)) & 0xFF);
         }
     }
 }
