@@ -209,11 +209,13 @@ static uint32_t BLF_round_function(uint32_t L) {
     d = (uint8_t) (L & 0xff);
     return ((BLF_s_boxes[0][a] + BLF_s_boxes[1][b]) ^ BLF_s_boxes[2][c]) + BLF_s_boxes[3][d];
 }
-
+/*
+ * ( ( ( S1[ ext1( data ) ] + S2[ ext2( data ) ] ) ^ S3[ ext3( data ) ] ) + S4[ extd( data ) ] )
+ */
 
 uint64_t BLF_block(uint64_t block, int encrypt) {
-    uint32_t L = 0, R = 0, temp = 0;
-    L = (uint32_t)( block >> 33);
+    uint32_t L, R, temp;
+    L = (uint32_t)( block >> 32);
     R = (uint32_t)( block & MASK_32);
     if (encrypt == 1) {
         for (int i = 0; i < 16; ++i) {
@@ -226,8 +228,11 @@ uint64_t BLF_block(uint64_t block, int encrypt) {
         temp = L;
         L = R;
         R = temp;
+
         R ^= BLF_p_array[16];
         L ^= BLF_p_array[17];
+
+
         return (uint64_t) ((uint64_t) L << 32 | R);
     }
     for (int i = 17; i > 1; --i) {
@@ -245,7 +250,7 @@ uint64_t BLF_block(uint64_t block, int encrypt) {
     return (uint64_t) ((uint64_t) L << 32 | R);
 }
 
-static void BLF_set_sub_keys(uint32_t key_size) {
+static void BLF_init() {
     // copy
 
     int i, j, k;
@@ -263,14 +268,10 @@ static void BLF_set_sub_keys(uint32_t key_size) {
         for (j = 0; j < 4; ++j) {
             temp = (temp << 8) | BLF_key[k];
             k++;
-            if (k >= key_size)
-                k = 0;
             k = k % BLF_key_size;
         }
         BLF_p_array[i] = BLF_INIT_P_ARRAY[i] ^ temp;
     }
-
-
 
     uint64_t temp2 = 0;
     for (i = 0; i < 18; i += 2) {
@@ -302,7 +303,7 @@ void BLF_read_key_from_file(char *key_file_name) {
         abort();
     }
 
-    size_t sizeRead = 0;
+    size_t sizeRead;
     sizeRead = fread(BLF_key, 1, sizeof(BLF_key), input);
     BLF_key_size = sizeRead;
 
@@ -311,31 +312,29 @@ void BLF_read_key_from_file(char *key_file_name) {
 void BLOWFISH(char *input, char *output, char *key_file_name, int encrypt) {
     // pre-work
     BLF_read_key_from_file(key_file_name);
-    BLF_set_sub_keys(BLF_key_size);
+    BLF_init();
 
     FILE *in = fopen(input, "rb");
     FILE *out = fopen(output, "wb");
 
     uint64_t combined_block = 0;
-    uint64_t result_block = 0;
+    uint64_t result_block;
     uint8_t block[8] = {0};
 
     int i;
-    size_t sizeRead = 0;
+    size_t sizeRead;
     while ((sizeRead = fread(block, 1, sizeof(block), in)) > 0) {
         // read
         for (i = 0; i < sizeRead; ++i) {
             combined_block <<= 8;
             combined_block |= block[i] & 0xFF;
         }
-
         while (i < 8) {
             combined_block <<= 8;
             i++;
         }
         // process
         result_block = BLF_block(combined_block, encrypt);
-        printf("%llX", result_block);
         // write
         for (i = 0; i < 8; ++i) {
             fprintf(out, "%c", (char) ((result_block >> (7 - i) * 8)) & 0xFF);
